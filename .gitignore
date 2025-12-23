@@ -1,0 +1,15 @@
+# Environnement virtuel
+venv/
+.venv/
+env/
+
+# Fichiers Python temporaires
+__pycache__/
+*.pyc
+
+# Variables d'environnement (SÉCURITÉ : Ne jamais uploader ta clé API !)
+.env
+
+# Fichiers de données temporaires
+temp_*
+*.pdf
