@@ -18,6 +18,7 @@ try:
 except ImportError:
     from langchain_classic.chains.combine_documents import create_stuff_documents_chain
     from langchain_classic.chains.retrieval import create_retrieval_chain
+from langchain_huggingface import ChatHuggingFace
 app = FastAPI()
 load_dotenv()
 api_key = os.getenv("hugging_face_key")
@@ -75,14 +76,29 @@ async def ask_question(request: QuestionRequest):
         raise HTTPException(status_code=400, detail="Veuillez uploader un PDF d'abord.")
 
     try:
-        # Configuration dynamique du modèle selon le choix Flutter
+        # 1. Sélection du Repo
         if request.model_choice == "Hugging Face":
-            llm = HuggingFaceEndpoint(repo_id="HuggingFaceH4/zephyr-7b-beta", task="conversational", huggingfacehub_api_token=api_key)
+            repo_id = "HuggingFaceH4/zephyr-7b-beta"
         elif request.model_choice == "GPT-4":
-            llm = HuggingFaceEndpoint(repo_id="mistralai/Mistral-7B-Instruct-v0.3", task="text-generation", huggingfacehub_api_token=api_key)
+            repo_id = "mistralai/Mistral-7B-Instruct-v0.2"
+        else:
+            repo_id = None
+
+        # 2. Configuration du LLM
+        if repo_id:
+            # On définit l'endpoint de base
+            llm_base = HuggingFaceEndpoint(
+                repo_id=repo_id,
+                task="conversational",
+                huggingfacehub_api_token=api_key,
+                timeout=300
+            )
+            # On l'enveloppe dans ChatHuggingFace pour forcer le bon format
+            llm = ChatHuggingFace(llm=llm_base)
         else:
             llm = ChatOllama(model="llama3.2", temperature=0.8)
 
+        # 3. Exécution de la chaîne (Le reste ne change pas)
         prompt = ChatPromptTemplate.from_template("Réponds à la question en utilisant le contexte : {context}\nQuestion : {input}")
         document_chain = create_stuff_documents_chain(llm, prompt)
         chain = create_retrieval_chain(store.retriever, document_chain)
@@ -99,6 +115,8 @@ async def ask_question(request: QuestionRequest):
             "history": store.messages
         }
     except Exception as e:
+        # On affiche l'erreur complète pour débugger
+        print(f"Erreur détaillée : {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- ENDPOINT 3 : RESET ---

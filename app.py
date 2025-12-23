@@ -79,7 +79,7 @@ if docs_pdf and st.session_state.retrieve_chain is None:
     elif st.session_state["model"] == "GPT-4":
         llm = HuggingFaceEndpoint(
             repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-            task="text-generation",
+            task="conversational",
             max_new_tokens=max_tokens,
             huggingfacehub_api_token=api_key
         )
